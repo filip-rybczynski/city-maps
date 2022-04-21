@@ -4,6 +4,7 @@ import React from "react";
 class App extends React.Component {
   state = {
     cities: [],
+    callsRemaining: 0,
   };
 
   options = {
@@ -19,29 +20,44 @@ class App extends React.Component {
       "https://wft-geo-db.p.rapidapi.com/v1/geo/adminDivisions?minPopulation=100000&limit=10",
       this.options
     )
-      .then((response) => response.json())
+      .then((response) => {
+        const callsRemaining = response.headers.get('x-ratelimit-requests-remaining');
+
+        this.setState({
+          callsRemaining,
+        });
+
+        return response.json()})
       .then((response) => {
         this.setState({
           cities: response.data,
         });
-        console.log(response);
+        console.dir(response);
+
       })
       .catch((err) => console.error(err));
   };
 
   render() {
+    const {cities, callsRemaining} = this.state;
+
     return (
       <div className="App">
-        <header className="App-header">
+        <section className="App-header">
           <button onClick={this.letsFetch}>Let's fetch!</button>
           <ul>
-            {this.state.cities.map((city) => (
+            {cities.map((city) => (
               <li key={city.name}>
                 {city.name}, {city.country} has {city.population} inhabitants.
               </li>
             ))}
           </ul>
-        </header>
+        <p>
+          {callsRemaining
+            ? `You have ${callsRemaining} API calls left`
+          : null}
+        </p>
+        </section>
       </div>
     );
   }
