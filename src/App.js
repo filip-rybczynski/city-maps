@@ -1,6 +1,6 @@
 import "./App.css";
 import React from "react";
-import axios from "axios";
+import capitalize from "./functions/capitalize";
 import CitySelection from "./components/CitySelection/CitySelection";
 
 class App extends React.Component {
@@ -28,14 +28,25 @@ class App extends React.Component {
     });
 
     clearTimeout(this.fetchTimer);
-    this.fetchTimer = setTimeout(() => {this.getCities(e)}, 1000);
+    this.fetchTimer = setTimeout(() => {
+      this.getCities(e);
+    }, 1000);
   };
 
   getCities = (e) => {
     e.preventDefault();
 
+    const searchText = capitalize(this.state.searchText);
+
+    if (searchText === '') {
+      this.setState({
+        cities: [],
+      })
+      return;
+    };
+
     fetch(
-      `https://wft-geo-db.p.rapidapi.com/v1/geo/cities?minPopulation=10000&limit=10&namePrefix=${this.state.searchText}`,
+      `https://wft-geo-db.p.rapidapi.com/v1/geo/cities?minPopulation=10000&limit=10&namePrefix=${searchText}`,
       this.fetchOptions
     )
       .then((response) => {
@@ -48,7 +59,9 @@ class App extends React.Component {
         return response.json();
       })
       .then((response) => {
-        const cities = response.data;
+        const cities = response.data.filter((city) => {
+          return city.name.startsWith(searchText);
+        });
         this.setState({
           cities,
         });
@@ -57,7 +70,7 @@ class App extends React.Component {
   };
 
   render() {
-    const { cities, callsRemaining, searchText } = this.state;
+    const { cities, callsRemaining, searchText} = this.state;
 
     return (
       <div className="App">
@@ -68,16 +81,11 @@ class App extends React.Component {
             getCities={this.getCities}
           ></CitySelection>
           <ul>
-            {cities
-              .filter((city) => {
-
-                return city.name.startsWith(searchText);
-              })
-              .map((city) => (
-                <li key={city.id}>
-                  {city.name}, {city.country} has {city.population} inhabitants.
-                </li>
-              ))}
+            {cities.map((city) => (
+              <li key={city.id}>
+                {city.name}, {city.country} has {city.population} inhabitants.
+              </li>
+            ))}
           </ul>
           <p>
             {callsRemaining
